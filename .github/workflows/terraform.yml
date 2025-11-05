@@ -12,6 +12,10 @@ jobs:
     name: 'Terraform'
     runs-on: self-hosted
     
+    permissions:
+      contents: read
+      actions: read
+    
     defaults:
       run:
         working-directory: ./environments/dev
@@ -37,6 +41,17 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 1.5.0
+      continue-on-error: true
+    
+    - name: Verify Terraform
+      run: |
+        if ! terraform version &> /dev/null; then
+          echo "Terraform not found, installing..."
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install terraform@1.5 || echo "Please install Terraform manually"
+          fi
+        fi
+        terraform version
     
     - name: Azure Login
       uses: azure/login@v1
