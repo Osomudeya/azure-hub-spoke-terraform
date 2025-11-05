@@ -16,6 +16,20 @@ jobs:
       run:
         working-directory: ./environments/dev
     
+    env:
+      TF_VAR_resource_group_name: ${{ secrets.TF_VAR_resource_group_name }}
+      TF_VAR_location: ${{ secrets.TF_VAR_location }}
+      TF_VAR_prefix: ${{ secrets.TF_VAR_prefix }}
+      TF_VAR_hub_vnet_address_space: ${{ secrets.TF_VAR_hub_vnet_address_space }}
+      TF_VAR_hub_subnet_address_prefix: ${{ secrets.TF_VAR_hub_subnet_address_prefix }}
+      TF_VAR_spoke1_vnet_address_space: ${{ secrets.TF_VAR_spoke1_vnet_address_space }}
+      TF_VAR_spoke1_subnet_address_prefix: ${{ secrets.TF_VAR_spoke1_subnet_address_prefix }}
+      TF_VAR_spoke2_vnet_address_space: ${{ secrets.TF_VAR_spoke2_vnet_address_space }}
+      TF_VAR_spoke2_subnet_address_prefix: ${{ secrets.TF_VAR_spoke2_subnet_address_prefix }}
+      TF_VAR_vm_size: ${{ secrets.TF_VAR_vm_size }}
+      TF_VAR_admin_username: ${{ secrets.TF_VAR_admin_username }}
+      TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_ssh_public_key }}
+    
     steps:
     - uses: actions/checkout@v3
     
@@ -36,41 +50,20 @@ jobs:
     - name: Terraform Init
       run: terraform init
     
+    - name: Terraform Format Check
+      run: terraform fmt -check
+    
     - name: Terraform Validate
       run: terraform validate
     
     - name: Terraform Plan
       env:
-        TF_VAR_resource_group_name: ${{ secrets.TF_VAR_resource_group_name }}
-        TF_VAR_location: ${{ secrets.TF_VAR_location }}
-        TF_VAR_prefix: ${{ secrets.TF_VAR_prefix }}
-        TF_VAR_hub_vnet_address_space: ${{ secrets.TF_VAR_hub_vnet_address_space }}
-        TF_VAR_hub_subnet_address_prefix: ${{ secrets.TF_VAR_hub_subnet_address_prefix }}
-        TF_VAR_spoke1_vnet_address_space: ${{ secrets.TF_VAR_spoke1_vnet_address_space }}
-        TF_VAR_spoke1_subnet_address_prefix: ${{ secrets.TF_VAR_spoke1_subnet_address_prefix }}
-        TF_VAR_spoke2_vnet_address_space: ${{ secrets.TF_VAR_spoke2_vnet_address_space }}
-        TF_VAR_spoke2_subnet_address_prefix: ${{ secrets.TF_VAR_spoke2_subnet_address_prefix }}
-        TF_VAR_vm_size: ${{ secrets.TF_VAR_vm_size }}
-        TF_VAR_admin_username: ${{ secrets.TF_VAR_admin_username }}
-        TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_ssh_public_key }}
         TF_VAR_admin_source_ip: ${{ steps.get_ip.outputs.ip }}
-      run: terraform plan
+      run: terraform plan -out=tfplan
     
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       env:
-        TF_VAR_resource_group_name: ${{ secrets.TF_VAR_resource_group_name }}
-        TF_VAR_location: ${{ secrets.TF_VAR_location }}
-        TF_VAR_prefix: ${{ secrets.TF_VAR_prefix }}
-        TF_VAR_hub_vnet_address_space: ${{ secrets.TF_VAR_hub_vnet_address_space }}
-        TF_VAR_hub_subnet_address_prefix: ${{ secrets.TF_VAR_hub_subnet_address_prefix }}
-        TF_VAR_spoke1_vnet_address_space: ${{ secrets.TF_VAR_spoke1_vnet_address_space }}
-        TF_VAR_spoke1_subnet_address_prefix: ${{ secrets.TF_VAR_spoke1_subnet_address_prefix }}
-        TF_VAR_spoke2_vnet_address_space: ${{ secrets.TF_VAR_spoke2_vnet_address_space }}
-        TF_VAR_spoke2_subnet_address_prefix: ${{ secrets.TF_VAR_spoke2_subnet_address_prefix }}
-        TF_VAR_vm_size: ${{ secrets.TF_VAR_vm_size }}
-        TF_VAR_admin_username: ${{ secrets.TF_VAR_admin_username }}
-        TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_ssh_public_key }}
         TF_VAR_admin_source_ip: ${{ steps.get_ip.outputs.ip }}
-      run: terraform apply -auto-approve
+      run: terraform apply tfplan
 
