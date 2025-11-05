@@ -99,8 +99,46 @@ Trigger workflow manually:
 - Restart service: `sudo ./svc.sh restart` (Linux/macOS) or `./svc.cmd restart` (Windows)
 - If running manually: `./run.sh` (Linux/macOS) or `./run.cmd` (Windows)
 
+**Session Conflict Error:**
+```
+A session for this runner already exists.
+Failed to create session. Error: Conflict
+```
+
+**Solution:**
+1. Stop all runner processes:
+```bash
+# Stop the service
+./svc.sh stop
+
+# Kill any remaining runner processes
+pkill -f "Runner.Listener"
+pkill -f "actions-runner"
+```
+
+2. Wait a few seconds, then restart:
+```bash
+# Start the runner
+./run.sh
+```
+
+**Multiple Runner Instances:**
+If you see "A session for this runner already exists", it means multiple instances are running:
+```bash
+# Check for running processes
+ps aux | grep -i "actions-runner\|Runner.Listener" | grep -v grep
+
+# Kill all runner processes
+pkill -f "Runner.Listener"
+pkill -f "actions-runner"
+
+# Start fresh
+./run.sh
+```
+
 **Workflow fails:**
 - Verify AZURE_CREDENTIALS secret
 - Check runner is online
 - Review workflow logs
+- Ensure only one runner instance is running
 
