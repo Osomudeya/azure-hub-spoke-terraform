@@ -50,7 +50,7 @@ output "peering_info" {
     spoke1_to_hub_name = module.hub_spoke1_peering.spoke_to_hub_peering_name
     hub_to_spoke2_name = module.hub_spoke2_peering.hub_to_spoke_peering_name
     spoke2_to_hub_name = module.hub_spoke2_peering.spoke_to_hub_peering_name
-    note = "Check peering status in Azure Portal. Peering should show as 'Connected' after deployment."
+    note               = "Check peering status in Azure Portal. Peering should show as 'Connected' after deployment."
   }
 }
 

@@ -63,7 +63,11 @@ jobs:
       run: echo "ip=$(curl -s https://api.ipify.org)/32" >> $GITHUB_OUTPUT
     
     - name: Terraform Init
-      run: terraform init
+      env:
+        TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+      run: |
+        mkdir -p ~/.terraform.d/plugin-cache
+        terraform init
     
     - name: Terraform Format Check
       run: terraform fmt -check

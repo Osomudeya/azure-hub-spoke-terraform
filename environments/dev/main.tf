@@ -117,10 +117,10 @@ resource "azurerm_virtual_network_peering" "spoke1_to_spoke2" {
   resource_group_name       = module.resource_group.resource_group_name
   virtual_network_name      = module.spoke1_network.spoke_vnet_name
   remote_virtual_network_id = module.spoke2_network.spoke_vnet_id
-  
+
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  
+
   depends_on = [module.spoke1_network, module.spoke2_network]
 }
 
@@ -130,9 +130,9 @@ resource "azurerm_virtual_network_peering" "spoke2_to_spoke1" {
   resource_group_name       = module.resource_group.resource_group_name
   virtual_network_name      = module.spoke2_network.spoke_vnet_name
   remote_virtual_network_id = module.spoke1_network.spoke_vnet_id
-  
+
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  
+
   depends_on = [module.spoke1_network, module.spoke2_network]
 }
