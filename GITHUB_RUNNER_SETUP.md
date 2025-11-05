@@ -21,81 +21,33 @@ git push -u origin main
 
 ## Step 2: Install Runner
 
-### On Linux:
-
-```bash
-# Create directory
-mkdir actions-runner && cd actions-runner
-
-# Download runner (check https://github.com/actions/runner/releases for latest version)
-curl -o actions-runner-linux-x64-2.329.0.tar.gz -L \
-  https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-linux-x64-2.329.0.tar.gz
-
-# Extract
-tar xzf ./actions-runner-linux-x64-2.329.0.tar.gz
-
-# Configure (get token from GitHub Settings → Actions → Runners)
-./config.sh --url https://github.com/YOUR_USERNAME/YOUR_REPO --token YOUR_TOKEN
-
-# Install as service (recommended for production)
-sudo ./svc.sh install
-sudo ./svc.sh start
-
-# Or run manually (for testing)
-# ./run.sh
-```
-
 ### On macOS:
 
 ```bash
-# Create directory
+# Create a folder
 mkdir actions-runner && cd actions-runner
 
-# Download runner for Intel Mac (check https://github.com/actions/runner/releases for latest version)
-curl -o actions-runner-osx-x64-2.329.0.tar.gz -L \
-  https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-osx-x64-2.329.0.tar.gz
+# Download the latest runner package
+curl -o actions-runner-osx-x64-2.329.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-osx-x64-2.329.0.tar.gz
 
-# OR for Apple Silicon (ARM64) Mac:
-# curl -o actions-runner-osx-arm64-2.329.0.tar.gz -L \
-#   https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-osx-arm64-2.329.0.tar.gz
+# Optional: Validate the hash
+echo "c5a14e84b358c72ca83bf14518e004a8ad195cc440322fbca2a4fec7649035c7  actions-runner-osx-x64-2.329.0.tar.gz" | shasum -a 256 -c
 
-# Extract
+# Extract the installer
 tar xzf ./actions-runner-osx-x64-2.329.0.tar.gz
-
-# Configure (get token from GitHub Settings → Actions → Runners)
-./config.sh --url https://github.com/YOUR_USERNAME/YOUR_REPO --token YOUR_TOKEN
-
-# Install as service (recommended for production)
-sudo ./svc.sh install
-sudo ./svc.sh start
-
-# Or run manually (for testing)
-# ./run.sh
 ```
 
-### On Windows (PowerShell):
+### Configure Runner
 
-```powershell
-# Create directory
-mkdir actions-runner ; cd actions-runner
+```bash
+# Create the runner and start the configuration experience
+./config.sh --url https://github.com/Osomudeya/azure-hub-spoke-terraform --token YOUR_TOKEN
 
-# Download (check https://github.com/actions/runner/releases for latest version)
-Invoke-WebRequest -Uri https://github.com/actions/runner/releases/download/v2.329.0/actions-runner-win-x64-2.329.0.zip -OutFile actions-runner-win-x64-2.329.0.zip
-
-# Extract
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::ExtractToDirectory("$PWD/actions-runner-win-x64-2.329.0.zip", "$PWD")
-
-# Configure
-./config.cmd --url https://github.com/YOUR_USERNAME/YOUR_REPO --token YOUR_TOKEN
-
-# Install as service (recommended for production - run as Administrator)
-./svc.cmd install
-./svc.cmd start
-
-# Or run manually (for testing)
-# ./run.cmd
+# Last step, run it!
+./run.sh
 ```
+
+**Note:** Get the token from GitHub: Settings → Actions → Runners → New self-hosted runner
 
 ## Step 3: Configure Azure Credentials
 
@@ -123,12 +75,21 @@ Copy the JSON output. The output should contain `clientId`, `clientSecret`, `sub
 4. Value: Paste the JSON from Step 3
 5. Click "Add secret"
 
-## Step 5: Test Workflow
+## Step 5: Using Your Self-Hosted Runner
+
+In your workflow file, use:
+```yaml
+runs-on: self-hosted
+```
+
+## Step 6: Test Workflow
 
 Trigger workflow manually:
 1. Go to Actions tab
 2. Select "Terraform Azure Hub-Spoke"
 3. Click "Run workflow"
+4. Select branch: `main`
+5. Click "Run workflow" button
 
 ## Troubleshooting
 
