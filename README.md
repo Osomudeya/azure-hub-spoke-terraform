@@ -25,25 +25,23 @@ Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
         ┌────────────▼──────────┐  ┌──────▼──────────────┐
         │  Spoke 1 VNet         │  │  Spoke 2 VNet        │
         │  (10.1.0.0/16)        │  │  (10.2.0.0/16)       │
-        │                       │  │                      │
         │  ┌─────────────────┐ │  │  ┌─────────────────┐ │
         │  │ Subnet          │ │  │  │ Subnet          │ │
         │  │ (10.1.1.0/24)   │ │  │  │ (10.2.1.0/24)   │ │
-        │  └────────┬────────┘ │  │  └────────┬────────┘ │
-        │           │          │  │           │          │
-        │  ┌────────▼────────┐ │  │  ┌────────▼────────┐ │
-        │  │   NSG           │ │  │  │   NSG           │ │
-        │  │ - SSH (port 22)  │ │  │  │ - SSH (port 22) │ │
+        │  │                 │ │  │  │                 │ │
+        │  │ NSG Applied:    │ │  │  │ NSG Applied:    │ │
+        │  │ - SSH (port 22) │ │  │  │ - SSH (port 22) │ │
         │  │ - Cross-spoke   │ │  │  │ - Cross-spoke   │ │
-        │  └────────┬────────┘ │  │  └────────┬────────┘ │
-        │           │          │  │           │          │
-        │  ┌────────▼────────┐ │  │  ┌────────▼────────┐ │
-        │  │   VM1           │ │  │  │   VM2           │ │
-        │  │ Private:        │ │  │  │ Private:        │ │
-        │  │ 10.1.1.4        │ │  │  │ 10.2.1.4        │ │
-        │  │ Public:         │ │  │  │ Public:         │ │
-        │  │ 40.76.228.161   │◄──┼──►│ 172.178.29.254  │ │
-        │  │ (Ubuntu 22.04)   │ │  │  │ (Ubuntu 22.04)  │ │
+        │  │                 │ │  │  │                 │ │
+        │  │ ┌─────────────┐ │ │  │  │ ┌─────────────┐ │ │
+        │  │ │   VM1       │ │ │  │  │ │   VM2       │ │ │
+        │  │ │ Private IP: │ │ │  │  │ │ Private IP: │ │ │
+        │  │ │ 10.1.1.4    │ │ │  │  │ │ 10.2.1.4    │ │ │
+        │  │ │ Public IP:  │ │ │  │  │ │ Public IP:  │ │ │
+        │  │ │ 40.76.228.  │◄─┼─┼──┼─►│ 172.178.29.  │ │ │
+        │  │ │ 161         │ │ │  │  │ │ 254         │ │ │
+        │  │ │ (Ubuntu)    │ │ │  │  │ │ (Ubuntu)    │ │ │
+        │  │ └─────────────┘ │ │  │  │ └─────────────┘ │ │
         │  └─────────────────┘ │  │  └─────────────────┘ │
         └──────────────────────┘  └──────────────────────┘
                  ▲                          ▲
@@ -421,12 +419,6 @@ pkill -f "actions-runner"
 cd environments/dev
 terraform fmt
 git add .
-git commit -m "Format terraform files"
+git commit -m "fmt"
 git push
 ```
-
-**Common Issues Summary:**
-- **VM connectivity:** Check VNet peering status in Azure Portal
-- **SSH access:** Verify admin_source_ip matches your current IP
-- **Module dependencies:** Ensure proper depends_on relationships
-- **Runner offline:** Check runner process is running (`ps aux | grep actions-runner`)

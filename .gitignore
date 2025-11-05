@@ -40,3 +40,7 @@ scripts/
 # Documentation folder
 docs/
 
+# GitHub Runner setup docs
+GITHUB_RUNNER_SETUP.md
+*GITHUB_RUNNER*.md
+
