@@ -34,3 +34,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Scripts
+scripts/
+
+# Documentation folder
+docs/
+
