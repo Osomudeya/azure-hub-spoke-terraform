@@ -8,20 +8,71 @@ Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
 
 ## Architecture
 
+### Network Topology Diagram
+
 ```
-         ┌─────────────────┐
-         │   Hub VNet      │
-         │  10.0.0.0/16    │
-         └────────┬────────┘
-                  │
-         ┌────────┴────────┐
-         │                 │
-    ┌────▼────┐      ┌────▼────┐
-    │ Spoke 1 │      │ Spoke 2 │
-    │10.1.0.0 │      │10.2.0.0 │
-    │   VM1   │◄────►│   VM2   │
-    └─────────┘      └─────────┘
+                           ┌─────────────────────────────────────┐
+                           │      Hub VNet (10.0.0.0/16)         │
+                           │  ┌───────────────────────────────┐  │
+                           │  │ Hub Subnet (10.0.1.0/24)       │  │
+                           │  │  (Central Connectivity Hub)     │  │
+                           │  └───────────────────────────────┘  │
+                           └──────────────┬──────────────────────┘
+                                          │
+                     ┌────────────────────┼────────────────────┐
+                     │                    │                    │
+                     │                    │                    │
+        ┌────────────▼──────────┐  ┌──────▼──────────────┐
+        │  Spoke 1 VNet         │  │  Spoke 2 VNet        │
+        │  (10.1.0.0/16)        │  │  (10.2.0.0/16)       │
+        │                       │  │                      │
+        │  ┌─────────────────┐ │  │  ┌─────────────────┐ │
+        │  │ Subnet          │ │  │  │ Subnet          │ │
+        │  │ (10.1.1.0/24)   │ │  │  │ (10.2.1.0/24)   │ │
+        │  └────────┬────────┘ │  │  └────────┬────────┘ │
+        │           │          │  │           │          │
+        │  ┌────────▼────────┐ │  │  ┌────────▼────────┐ │
+        │  │   NSG           │ │  │  │   NSG           │ │
+        │  │ - SSH (port 22)  │ │  │  │ - SSH (port 22) │ │
+        │  │ - Cross-spoke   │ │  │  │ - Cross-spoke   │ │
+        │  └────────┬────────┘ │  │  └────────┬────────┘ │
+        │           │          │  │           │          │
+        │  ┌────────▼────────┐ │  │  ┌────────▼────────┐ │
+        │  │   VM1           │ │  │  │   VM2           │ │
+        │  │ Private:        │ │  │  │ Private:        │ │
+        │  │ 10.1.1.4        │ │  │  │ 10.2.1.4        │ │
+        │  │ Public:         │ │  │  │ Public:         │ │
+        │  │ 40.76.228.161   │◄──┼──►│ 172.178.29.254  │ │
+        │  │ (Ubuntu 22.04)   │ │  │  │ (Ubuntu 22.04)  │ │
+        │  └─────────────────┘ │  │  └─────────────────┘ │
+        └──────────────────────┘  └──────────────────────┘
+                 ▲                          ▲
+                 │                          │
+                 └──────────┬───────────────┘
+                            │
+                    Direct Spoke-to-Spoke
+                    Peering (Bidirectional)
+                    Enables VM1 ↔ VM2 communication
 ```
+
+### Peering Connections
+
+```
+Hub ↔ Spoke1:  Bidirectional peering (Hub-to-Spoke1, Spoke1-to-Hub)
+Hub ↔ Spoke2:  Bidirectional peering (Hub-to-Spoke2, Spoke2-to-Hub)
+Spoke1 ↔ Spoke2: Direct bidirectional peering (enables VM-to-VM communication)
+```
+
+### Network Flow
+
+**VM1 to VM2 Communication Path:**
+1. VM1 (10.1.1.4) → Spoke1 Subnet (10.1.1.0/24)
+2. Spoke1-to-Spoke2 Peering
+3. Spoke2 Subnet (10.2.1.0/24) → VM2 (10.2.1.4)
+
+**SSH Access:**
+- VM1: `ssh -i ~/.ssh/azure_hubspoke_key azureuser@40.76.228.161`
+- VM2: `ssh -i ~/.ssh/azure_hubspoke_key azureuser@172.178.29.254`
 
 ## Features
 
@@ -158,8 +209,6 @@ module "hub_spoke3_peering" {
 | VNet Peering | ~$1.00/month |
 | Storage (Standard HDD) | ~$3.00/month |
 | **Total** | **~$26.38/month** |
-```
-
 
 ## Module Documentation
 
@@ -187,7 +236,7 @@ module "hub_spoke3_peering" {
 
 - **Network Isolation:** Each spoke is separate by default
 - **Controlled Communication:** Only allowed traffic can pass between spokes (via NSG rules).
-- **SSH Key Authentication:** No password authentication (Kye Based)
+- **SSH Key Authentication:** No password authentication (Key Based)
 - **Source IP Restrictions:** Access restricted to My admin IP address
 
 ## Assessment Requirements - Complete Solution
@@ -224,7 +273,7 @@ This solution addresses all assessment requirements:
 ### ✅ Requirement 2 (Self-Hosted Runner)
 - **GitHub Actions Runner:** Configured and documented in `GITHUB_RUNNER_SETUP.md`
 - **Workflow:** `.github/workflows/terraform.yml` uses self-hosted runner
-- **CI/CD:** Automated Terraform plan/apply on push to main branch and aloso using workflow dispatch for manual run
+- **CI/CD:** Automated Terraform plan/apply on push to main branch and also using workflow dispatch for manual run
 
 ## Screenshots and Documentation Snapshots
 
@@ -245,7 +294,7 @@ This solution addresses all assessment requirements:
 *Successful ping from VM1 (10.1.1.4) to VM2 (10.2.1.4) via private IP*
 
 ### GitHub Actions Self-Hosted Runner
-![GitHub Runner Status](screenshots/github-actions/self-hosted-runner-active.png)
+![GitHub Runner Status](screenshots/connectivity/self-hosted-runner-active.png)
 *Self-hosted runner showing as "Active" in GitHub Actions*
 
 ![Workflow Success](screenshots/github-actions/workflow-success.png)
@@ -338,7 +387,7 @@ terraform apply -target=module.spoke1_network.azurerm_network_security_rule.ssh 
 
 **Root Cause:** The runner process is not running on your local machine.
 
-**Solution:** Retart the runner:
+**Solution:** Restart the runner:
 ```bash
 cd ~/actions-runner
 ./run.sh
