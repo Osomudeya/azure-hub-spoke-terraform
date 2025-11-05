@@ -57,7 +57,7 @@ jobs:
       run: terraform plan
     
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       env:
         TF_VAR_resource_group_name: ${{ secrets.TF_VAR_resource_group_name }}
         TF_VAR_location: ${{ secrets.TF_VAR_location }}
