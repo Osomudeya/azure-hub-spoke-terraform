@@ -53,14 +53,14 @@ modules/
 - SSH key pair generated
 - Git for version control
 
-## Quick Start
+## Steps I Took
 
-### 1. Generate SSH Key
+### 1. Generated SSH Key
 ```bash
 ssh-keygen -t rsa -b 4096 -f ~/.ssh/azure_hubspoke_key
 ```
 
-### 2. Get Your Public IP
+### 2. Get Public IP
 ```bash
 curl https://api.ipify.org
 ```
@@ -68,43 +68,46 @@ curl https://api.ipify.org
 ### 3. Configure Variables
 Edit `environments/dev/terraform.tfvars`:
 ```hcl
-resource_group_name = "rg-hubspoke-yourname"
-prefix              = "yourname" 
-ssh_public_key      = "YOUR_SSH_PUBLIC_KEY"
-admin_source_ip     = "YOUR_IP/32"
+resource_group_name = "rg-hubspoke-infinion"
+prefix              = "name" 
+ssh_public_key      = "SSH_PUBLIC_KEY"
+admin_source_ip     = "MY_IP/32"
 ```
 
 ### 4. Deploy Infrastructure
 ```bash
 cd environments/dev
 terraform init
+terraform fmt -check
 terraform plan
-terraform apply
+terraform apply -auto-approve
 ```
 
 ### 5. Test Connectivity
 ```bash
 # SSH to VM1 (Spoke1)
 terraform output -json spoke1_details | jq -r '.ssh_command'
+ssh -i ~/.ssh/azure_hubspoke_key azureuser@172.178.29.254
 
 # From VM1, ping VM2 private IP
 ping $(terraform output -json spoke2_details | jq -r '.private_ip')
+ping -c 4 10.1.1.4
 ```
 
 ### 6. Cleanup
 ```bash
-terraform destroy
+terraform destroy -auto-approve
 ```
 
 ## Modular Benefits
 
-### **🎯 Separation of Concerns**
+### **Separation of Concerns**
 - **Hub Network:** Centralized connectivity and shared services
 - **Spoke Networks:** Independent workload environments  
 - **VNet Peering:** Standardized connectivity patterns
 - **Resource Groups:** Shared foundational resources
 
-### **📈 Scalability**
+### **Scalability**
 ```hcl
 # Add new spoke easily
 module "spoke3_network" {
@@ -125,7 +128,7 @@ module "hub_spoke3_peering" {
 }
 ```
 
-### **🔄 Reusability**
+### **Reusability**
 - **Hub Module:** Reuse across environments (dev/staging/prod)
 - **Spoke Module:** Deploy different workload types
 - **Peering Module:** Standardize all hub-spoke connections
@@ -155,37 +158,6 @@ module "hub_spoke3_peering" {
 | VNet Peering | ~$1.00/month |
 | Storage (Standard HDD) | ~$3.00/month |
 | **Total** | **~$26.38/month** |
-
-## Advanced Usage
-
-### Multiple Environments
-```bash
-# Deploy to different environments
-environments/
-├── dev/
-├── staging/
-└── prod/
-```
-
-### Custom Spoke Types
-```hcl
-# Web Spoke
-module "web_spoke" {
-  source = "../../modules/spoke-network"
-  
-  spoke_name         = "web"
-  vm_size           = "Standard_B2s"  # Larger for web traffic
-  allowed_spoke_cidrs = ["10.2.0.0/16", "10.3.0.0/16"]  # API + DB access
-}
-
-# Database Spoke  
-module "db_spoke" {
-  source = "../../modules/spoke-network"
-  
-  spoke_name         = "db"
-  vm_size           = "Standard_D2s_v3"  # Optimized for database
-  allowed_spoke_cidrs = ["10.1.0.0/16"]  # Only web access
-}
 ```
 
 
@@ -204,8 +176,7 @@ module "db_spoke" {
 
 ### VNet Peering Module
 - **Purpose:** Bidirectional hub-spoke connectivity
-- **Resources:** Two peering connections (hub↔spoke)
-- **Features:** Gateway transit support, forwarded traffic
+- **Resources:** Two peering connections (hub↔spoke) and (spoke 1 - spoke 2 peering)
 
 ### Resource Group Module
 - **Purpose:** Shared foundational resources
@@ -214,10 +185,10 @@ module "db_spoke" {
 
 ## Security Features
 
-- **Network Isolation:** Spokes isolated by default
-- **Controlled Communication:** Explicit NSG rules for cross-spoke traffic
-- **SSH Key Authentication:** No password authentication
-- **Source IP Restrictions:** SSH limited to admin IP
+- **Network Isolation:** Each spoke is separate by default
+- **Controlled Communication:** Only allowed traffic can pass between spokes (via NSG rules).
+- **SSH Key Authentication:** No password authentication (Kye Based)
+- **Source IP Restrictions:** Access restricted to My admin IP address
 
 ## Assessment Requirements - Complete Solution
 
@@ -251,10 +222,9 @@ This solution addresses all assessment requirements:
 - **Resource Management:** All resources tagged for easy identification
 
 ### ✅ Requirement 2 (Self-Hosted Runner)
-- **GitHub Actions Runner:** Configured and documented
-- **Setup Guide:** See [GITHUB_RUNNER_SETUP.md](GITHUB_RUNNER_SETUP.md)
+- **GitHub Actions Runner:** Configured and documented in `GITHUB_RUNNER_SETUP.md`
 - **Workflow:** `.github/workflows/terraform.yml` uses self-hosted runner
-- **CI/CD:** Automated Terraform plan/apply on push to main branch
+- **CI/CD:** Automated Terraform plan/apply on push to main branch and aloso using workflow dispatch for manual run
 
 ## Screenshots and Documentation Snapshots
 
@@ -280,12 +250,6 @@ This solution addresses all assessment requirements:
 
 ![Workflow Success](screenshots/github-actions/workflow-success.png)
 *Successful Terraform workflow execution using self-hosted runner*
-
-> **Note:** Screenshots are organized in the `screenshots/` directory by category:
-> - `screenshots/terraform/` - Terraform deployment outputs
-> - `screenshots/azure-portal/` - Azure Portal views
-> - `screenshots/connectivity/` - Connectivity testing results
-> - `screenshots/github-actions/` - GitHub Actions runner and workflows
 
 ## Connectivity Testing
 
@@ -313,49 +277,107 @@ PING 10.2.1.4 (10.2.1.4) 56(84) bytes of data.
 
 This confirms successful connectivity between VM1 and VM2 through the Hub VNet peering.
 
-## Assessment Requirements Mapping
-
-See [ASSESSMENT_REQUIREMENTS_MAPPING.md](docs/ASSESSMENT_REQUIREMENTS_MAPPING.md) for a complete step-by-step guide showing exactly where each assessment requirement is implemented in the Terraform codebase.
-
-This document provides:
-- Exact file locations and line numbers for each requirement
-- Code snippets for all key implementations
-- Links to all related files
-- Summary reference table for quick navigation
-
 ## Troubleshooting
 
-See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues and solutions.
+### Issue 1: VM1 Cannot Reach VM2 (Spoke-to-Spoke Communication)
 
-**Common Issues:**
-- **VM connectivity:** Check VNet peering status and NSG rules
+**Problem:** After deployment, VM1 in Spoke1 cannot ping VM2 in Spoke2, even though both are peered to the Hub.
+
+**Root Cause:** In a hub-spoke topology, spokes communicate through the hub by default. However, for direct VM-to-VM communication between spokes, you need actual spoke-to-spoke peering.
+
+**Solution:** The Terraform configuration includes direct spoke-to-spoke peering resources. Verify they exist:
+
+```bash
+# Checked peering status in Azure Portal
+# Navigated to: VNet → Peerings → Verify both spoke1-to-spoke2 and spoke2-to-spoke1 show "Connected"
+```
+
+If peering is missing, ensure these resources are in `environments/dev/main.tf`:
+```hcl
+resource "azurerm_virtual_network_peering" "spoke1_to_spoke2" {
+  name                      = "${var.prefix}-spoke1-to-spoke2"
+  resource_group_name       = module.resource_group.resource_group_name
+  virtual_network_name      = module.spoke1_network.spoke_vnet_name
+  remote_virtual_network_id = module.spoke2_network.spoke_vnet_id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+}
+```
+
+**Test:** SSH to VM1 and ping VM2's private IP:
+```bash
+ssh -i ~/.ssh/azure_hubspoke_key azureuser@<VM1_PUBLIC_IP>
+ping -c 4 10.2.1.4
+```
+
+### Issue 2: SSH Access Denied - Dynamic IP Address
+
+**Problem:** SSH connection fails with "Permission denied" or NSG blocks access.
+
+**Root Cause:** Your public IP address changes (home network, VPN, etc.), and the NSG rule only allows your original IP.
+
+**Automatic Solution (GitHub Actions):** The workflow automatically detects your current IP using `curl https://api.ipify.org` and passes it to Terraform. No manual intervention needed when deploying via GitHub Actions.
+
+**Manual Solution (Local Terraform Runs):** If running Terraform locally, update the `admin_source_ip` variable:
+
+```bash
+# Get your current public IP
+curl https://api.ipify.org
+
+# Update terraform.tfvars
+admin_source_ip = "YOUR_CURRENT_IP/32"
+
+# Apply the change
+cd environments/dev
+terraform apply -target=module.spoke1_network.azurerm_network_security_rule.ssh -target=module.spoke2_network.azurerm_network_security_rule.ssh
+```
+
+### Issue 3: GitHub Self-Hosted Runner Not Picking Up Jobs
+
+**Problem:** Workflow shows "Waiting for a runner to pick up this job..." indefinitely.
+
+**Root Cause:** The runner process is not running on your local machine.
+
+**Solution:** Retart the runner:
+```bash
+cd ~/actions-runner
+./run.sh
+```
+
+**Other Solution:** Install as a service (auto-starts on boot and runs in background):
+```bash
+cd ~/actions-runner
+./svc.sh install
+./svc.sh start
+```
+
+**Session Conflict Error:** If you see "A session for this runner already exists":
+```bash
+# Stop all runner processes
+cd ~/actions-runner
+./svc.sh stop
+pkill -f "Runner.Listener"
+pkill -f "actions-runner"
+
+# Start fresh
+./run.sh
+```
+
+### Issue 4: Terraform Format Check Fails
+
+**Problem:** GitHub Actions fails with "Terraform exited with code 3" during format check.
+
+**Solution:** Format your Terraform files locally:
+```bash
+cd environments/dev
+terraform fmt
+git add .
+git commit -m "Format terraform files"
+git push
+```
+
+**Common Issues Summary:**
+- **VM connectivity:** Check VNet peering status in Azure Portal
 - **SSH access:** Verify admin_source_ip matches your current IP
 - **Module dependencies:** Ensure proper depends_on relationships
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/new-spoke-type`)
-3. Test changes thoroughly
-4. Submit pull request
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## Architecture Decisions
-
-### Why Modular Design?
-- **Enterprise Scalability:** Easy to add 10+ spokes
-- **Team Autonomy:** Different teams can manage their spokes
-- **Reusability:** Modules work across environments
-- **Maintainability:** Changes isolated to specific modules
-
-### Why Hub-Spoke vs Alternatives?
-- **vs Full Mesh:** Exponential complexity with many networks
-- **vs Flat Network:** No isolation, security concerns
-- **vs Azure Virtual WAN:** Too complex/expensive for this scale
-
-This modular approach demonstrates enterprise-grade infrastructure as code practices while maintaining simplicity for demonstration purposes.
+- **Runner offline:** Check runner process is running (`ps aux | grep actions-runner`)

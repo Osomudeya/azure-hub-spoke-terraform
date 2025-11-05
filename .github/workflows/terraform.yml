@@ -63,10 +63,10 @@ jobs:
       run: echo "ip=$(curl -s https://api.ipify.org)/32" >> $GITHUB_OUTPUT
     
     - name: Terraform Init
-      env:
-        TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
       run: |
-        mkdir -p ~/.terraform.d/plugin-cache
+        PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+        mkdir -p "$PLUGIN_CACHE_DIR"
+        export TF_PLUGIN_CACHE_DIR="$PLUGIN_CACHE_DIR"
         terraform init
     
     - name: Terraform Format Check
