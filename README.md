@@ -1,6 +1,10 @@
 # Azure Hub-Spoke Network Topology with Modular Terraform
 
+**GitHub Repository:** [https://github.com/Osomudeya/azure-hub-spoke-terraform](https://github.com/Osomudeya/azure-hub-spoke-terraform)
+
 Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
+
+> **Assessment Solution:** This repository fulfills the Cloud Infrastructure Engineer assessment requirements, demonstrating reusable Terraform modules, Hub-Spoke network topology, self-hosted GitHub Actions runner, and comprehensive documentation.
 
 ## Architecture
 
@@ -21,15 +25,15 @@ Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
 
 ## Features
 
-- ✅ **Modular Architecture** - Separate modules for maximum reusability
-- ✅ **Hub-Spoke Network Topology** - Enterprise-grade design pattern
-- ✅ **Bidirectional VNet Peering** - Full mesh connectivity through hub
-- ✅ **Dynamic NSG Rules** - Configurable cross-spoke communication
-- ✅ **Scalable Design** - Easy to add new spokes
-- ✅ **2 Linux VMs** (Ubuntu 22.04) with SSH key authentication
-- ✅ **Cost-Optimized** (Standard_B1s VMs)
-- ✅ **GitHub Actions CI/CD** with self-hosted runner support
-- ✅ **Production-Ready** with comprehensive documentation
+- **Modular Architecture** - Separate modules for maximum reusability
+- **Hub-Spoke Network Topology** - Enterprise-grade design pattern
+- **Bidirectional VNet Peering** - Full mesh connectivity through hub
+- **Dynamic NSG Rules** - Configurable cross-spoke communication
+- **Scalable Design** - Easy to add new spokes
+- **2 Linux VMs** (Ubuntu 22.04) with SSH key authentication
+- **Cost-Optimized** (Standard_B1s VMs)
+- **GitHub Actions CI/CD** with self-hosted runner
+- **Production-Ready** with comprehensive documentation
 
 ## Module Structure
 
@@ -215,9 +219,103 @@ module "db_spoke" {
 - **SSH Key Authentication:** No password authentication
 - **Source IP Restrictions:** SSH limited to admin IP
 
+## Assessment Requirements - Complete Solution
+
+This solution addresses all assessment requirements:
+
+### ✅ Requirement 1: Reusable Terraform Module
+- **Azure Resource Group:** [`modules/resource-group/`](modules/resource-group/)
+- **Azure VNets and Subnets:** [`modules/hub-network/`](modules/hub-network/) and [`modules/spoke-network/`](modules/spoke-network/)
+- **NSG (Network Security Groups):** Included in [`modules/spoke-network/`](modules/spoke-network/)
+- **2 VMs:** Deployed via reusable spoke-network module
+
+### ✅ Requirement 2: Hub and Spoke Network Topology
+- **Hub VNet:** `10.0.0.0/16` - Central connectivity point
+- **Spoke VNet1:** `10.1.0.0/16` - Contains VM1
+- **Spoke VNet2:** `10.2.0.0/16` - Contains VM2
+- **VNet Peering:** Bidirectional peering via [`modules/vnet-peering/`](modules/vnet-peering/)
+
+### ✅ Requirement 3 & 4: VM Deployment
+- **VM1:** Deployed in Spoke VNet1 (10.1.1.0/24 subnet)
+- **VM2:** Deployed in Spoke VNet2 (10.2.1.0/24 subnet)
+- Both VMs use cost-optimized `Standard_B1s` size
+
+### ✅ Requirement 5: VM1 Should Reach VM2
+- NSG rules configured to allow cross-spoke communication
+- Connectivity tested via ping from VM1 to VM2 private IP
+- See [Connectivity Testing](#connectivity-testing) section below
+
+### ✅ Requirement 6: Cost Optimization and Cleanup
+- **Cost-Optimized:** Standard_B1s VMs (~$26.38/month total)
+- **Cleanup:** `terraform destroy` command provided
+- **Resource Management:** All resources tagged for easy identification
+
+### ✅ Requirement 2 (Self-Hosted Runner)
+- **GitHub Actions Runner:** Configured and documented
+- **Setup Guide:** See [GITHUB_RUNNER_SETUP.md](GITHUB_RUNNER_SETUP.md)
+- **Workflow:** `.github/workflows/terraform.yml` uses self-hosted runner
+- **CI/CD:** Automated Terraform plan/apply on push to main branch
+
+## Screenshots and Documentation Snapshots
+
+### Infrastructure Deployment
+![Terraform Apply Success](screenshots/terraform/terraform-apply-success.png)
+*Terraform successfully deployed all resources*
+
+### Azure Portal - Resource Overview
+![Azure Resource Group](screenshots/azure-portal/resource-group-overview.png)
+*All resources deployed in the resource group*
+
+### Network Topology
+![VNet Peering](screenshots/azure-portal/vnet-peering-connected.png)
+*VNet peering status showing "Connected" between Hub and Spokes*
+
+### Connectivity Testing
+![VM1 to VM2 Ping](screenshots/connectivity/vm1-ping-vm2.png)
+*Successful ping from VM1 (10.1.1.4) to VM2 (10.2.1.4) via private IP*
+
+### GitHub Actions Self-Hosted Runner
+![GitHub Runner Status](screenshots/github-actions/self-hosted-runner-active.png)
+*Self-hosted runner showing as "Active" in GitHub Actions*
+
+![Workflow Success](screenshots/github-actions/workflow-success.png)
+*Successful Terraform workflow execution using self-hosted runner*
+
+> **Note:** Screenshots are organized in the `screenshots/` directory by category:
+> - `screenshots/terraform/` - Terraform deployment outputs
+> - `screenshots/azure-portal/` - Azure Portal views
+> - `screenshots/connectivity/` - Connectivity testing results
+> - `screenshots/github-actions/` - GitHub Actions runner and workflows
+
+## Connectivity Testing
+
+### Test VM1 to VM2 Connectivity
+
+```bash
+# 1. Get VM1 SSH command
+terraform output -json spoke1_details | jq -r '.ssh_command'
+
+# 2. SSH into VM1
+ssh -i ~/.ssh/azure_hubspoke_key azureuser@<VM1_PUBLIC_IP>
+
+# 3. From VM1, ping VM2 private IP
+ping -c 4 10.2.1.4
+```
+
+**Expected Output:**
+```
+PING 10.2.1.4 (10.2.1.4) 56(84) bytes of data.
+64 bytes from 10.2.1.4: icmp_seq=1 ttl=63 time=1.23 ms
+64 bytes from 10.2.1.4: icmp_seq=2 ttl=63 time=1.15 ms
+64 bytes from 10.2.1.4: icmp_seq=3 ttl=63 time=1.18 ms
+64 bytes from 10.2.1.4: icmp_seq=4 ttl=63 time=1.20 ms
+```
+
+This confirms successful connectivity between VM1 and VM2 through the Hub VNet peering.
+
 ## Assessment Requirements Mapping
 
-See [ASSESSMENT_REQUIREMENTS_MAPPING.md](ASSESSMENT_REQUIREMENTS_MAPPING.md) for a complete step-by-step guide showing exactly where each assessment requirement is implemented in the Terraform codebase.
+See [ASSESSMENT_REQUIREMENTS_MAPPING.md](docs/ASSESSMENT_REQUIREMENTS_MAPPING.md) for a complete step-by-step guide showing exactly where each assessment requirement is implemented in the Terraform codebase.
 
 This document provides:
 - Exact file locations and line numbers for each requirement
