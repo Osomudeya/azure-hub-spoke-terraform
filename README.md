@@ -10,48 +10,15 @@ Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
 
 ### Network Topology Diagram
 
-```
-                           ┌─────────────────────────────────────┐
-                           │      Hub VNet (10.0.0.0/16)         │
-                           │  ┌───────────────────────────────┐  │
-                           │  │ Hub Subnet (10.0.1.0/24)       │  │
-                           │  │  (Central Connectivity Hub)     │  │
-                           │  └───────────────────────────────┘  │
-                           └──────────────┬──────────────────────┘
-                                          │
-                     ┌────────────────────┼────────────────────┐
-                     │                    │                    │
-                     │                    │                    │
-        ┌────────────▼──────────┐  ┌──────▼──────────────┐
-        │  Spoke 1 VNet         │  │  Spoke 2 VNet        │
-        │  (10.1.0.0/16)        │  │  (10.2.0.0/16)       │
-        │  ┌─────────────────┐ │  │  ┌─────────────────┐ │
-        │  │ Subnet          │ │  │  │ Subnet          │ │
-        │  │ (10.1.1.0/24)   │ │  │  │ (10.2.1.0/24)   │ │
-        │  │                 │ │  │  │                 │ │
-        │  │ NSG Applied:    │ │  │  │ NSG Applied:    │ │
-        │  │ - SSH (port 22) │ │  │  │ - SSH (port 22) │ │
-        │  │ - Cross-spoke   │ │  │  │ - Cross-spoke   │ │
-        │  │                 │ │  │  │                 │ │
-        │  │ ┌─────────────┐ │ │  │  │ ┌─────────────┐ │ │
-        │  │ │   VM1       │ │ │  │  │ │   VM2       │ │ │
-        │  │ │ Private IP: │ │ │  │  │ │ Private IP: │ │ │
-        │  │ │ 10.1.1.4    │ │ │  │  │ │ 10.2.1.4    │ │ │
-        │  │ │ Public IP:  │ │ │  │  │ │ Public IP:  │ │ │
-        │  │ │ 40.76.228.  │◄─┼─┼──┼─►│ 172.178.29.  │ │ │
-        │  │ │ 161         │ │ │  │  │ │ 254         │ │ │
-        │  │ │ (Ubuntu)    │ │ │  │  │ │ (Ubuntu)    │ │ │
-        │  │ └─────────────┘ │ │  │  │ └─────────────┘ │ │
-        │  └─────────────────┘ │  │  └─────────────────┘ │
-        └──────────────────────┘  └──────────────────────┘
-                 ▲                          ▲
-                 │                          │
-                 └──────────┬───────────────┘
-                            │
-                    Direct Spoke-to-Spoke
-                    Peering (Bidirectional)
-                    Enables VM1 ↔ VM2 communication
-```
+![Hub-Spoke Network Architecture](screenshots/diagram/Hub%20VNET.png)
+
+*Visual representation of the Hub-Spoke network topology showing:*
+- *Hub VNet (10.0.0.0/16) with Hub Subnet (10.0.1.0/24)*
+- *Spoke 1 VNet (10.1.0.0/16) with Subnet (10.1.1.0/24) containing VM1*
+- *Spoke 2 VNet (10.2.0.0/16) with Subnet (10.2.1.0/24) containing VM2*
+- *NSG applied at subnet level (not VM level)*
+- *VNet peering at VNet level (not VM level)*
+- *Direct spoke-to-spoke peering enabling VM-to-VM communication*
 
 ### Peering Connections
 
