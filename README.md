@@ -41,33 +41,25 @@ Spoke1 ↔ Spoke2: Direct bidirectional peering (enables VM-to-VM communication)
 
 ## Features
 
-- **Modular Architecture** - Separate modules for maximum reusability
-- **Hub-Spoke Network Topology** - Enterprise-grade design pattern
+- **Modular Architecture** - Separate modules for reusability
+- **Hub-Spoke Network Topology** - Enterprise design pattern
 - **Bidirectional VNet Peering** - Full mesh connectivity through hub
 - **Dynamic NSG Rules** - Configurable cross-spoke communication
 - **Scalable Design** - Easy to add new spokes
 - **2 Linux VMs** (Ubuntu 22.04) with SSH key authentication
 - **Cost-Optimized** (Standard_B1s VMs)
 - **GitHub Actions CI/CD** with self-hosted runner
-- **Production-Ready** with comprehensive documentation
+- **Ready** with comprehensive documentation
 
 ## Module Structure
 
 ```
 modules/
-├── resource-group/        # Shared resource group
+├── resource-group/       # Shared resource group
 ├── hub-network/          # Hub VNet and subnet
 ├── spoke-network/        # Reusable spoke (VNet, subnet, VM, NSG)
 └── vnet-peering/         # Bidirectional VNet peering
 ```
-
-## Prerequisites
-
-- Azure subscription with Contributor access
-- Azure CLI installed and authenticated
-- Terraform >= 1.0
-- SSH key pair generated
-- Git for version control
 
 ## Steps I Took
 
@@ -115,45 +107,6 @@ ping -c 4 10.1.1.4
 terraform destroy -auto-approve
 ```
 
-## Modular Benefits
-
-### **Separation of Concerns**
-- **Hub Network:** Centralized connectivity and shared services
-- **Spoke Networks:** Independent workload environments  
-- **VNet Peering:** Standardized connectivity patterns
-- **Resource Groups:** Shared foundational resources
-
-### **Scalability**
-```hcl
-# Add new spoke easily
-module "spoke3_network" {
-  source = "../../modules/spoke-network"
-  
-  spoke_name          = "spoke3"
-  spoke_address_space = "10.3.0.0/16"
-  # ... other variables
-}
-
-# Add peering
-module "hub_spoke3_peering" {
-  source = "../../modules/vnet-peering"
-  
-  spoke_name      = "spoke3"
-  hub_vnet_name   = module.hub_network.hub_vnet_name
-  spoke_vnet_name = module.spoke3_network.spoke_vnet_name
-}
-```
-
-### **Reusability**
-- **Hub Module:** Reuse across environments (dev/staging/prod)
-- **Spoke Module:** Deploy different workload types
-- **Peering Module:** Standardize all hub-spoke connections
-
-### **👥 Team Ownership**
-- **Platform Team:** Manages hub and shared services
-- **Application Teams:** Own individual spokes
-- **Network Team:** Manages peering policies
-
 ## Network Configuration
 
 | Component | Address Space | Purpose |
@@ -165,44 +118,6 @@ module "hub_spoke3_peering" {
 | Spoke 2 VNet | 10.2.0.0/16 | VM2 workload |
 | Spoke 2 Subnet | 10.2.1.0/24 | VM2 subnet |
 
-## Cost Estimate
-
-| Resource | Estimated Cost |
-|----------|---------------|
-| 2x Standard_B1s VMs | ~$15.18/month |
-| 2x Public IPs | ~$7.20/month |
-| VNet Peering | ~$1.00/month |
-| Storage (Standard HDD) | ~$3.00/month |
-| **Total** | **~$26.38/month** |
-
-## Module Documentation
-
-### Hub Network Module
-- **Purpose:** Central connectivity point for all spokes
-- **Resources:** Hub VNet and subnet
-- **Outputs:** VNet ID, name, address space
-
-### Spoke Network Module  
-- **Purpose:** Reusable workload environment
-- **Resources:** VNet, subnet, VM, NSG, public IP
-- **Parameters:** Spoke name, address space, allowed CIDRs
-- **Outputs:** VNet details, VM connection info
-
-### VNet Peering Module
-- **Purpose:** Bidirectional hub-spoke connectivity
-- **Resources:** Two peering connections (hub↔spoke) and (spoke 1 - spoke 2 peering)
-
-### Resource Group Module
-- **Purpose:** Shared foundational resources
-- **Resources:** Resource group with consistent tagging
-- **Outputs:** Resource group name and location
-
-## Security Features
-
-- **Network Isolation:** Each spoke is separate by default
-- **Controlled Communication:** Only allowed traffic can pass between spokes (via NSG rules).
-- **SSH Key Authentication:** No password authentication (Key Based)
-- **Source IP Restrictions:** Access restricted to My admin IP address
 
 ## Assessment Requirements - Complete Solution
 
@@ -297,7 +212,7 @@ This confirms successful connectivity between VM1 and VM2 through the Hub VNet p
 
 **Problem:** After deployment, VM1 in Spoke1 cannot ping VM2 in Spoke2, even though both are peered to the Hub.
 
-**Root Cause:** In a hub-spoke topology, spokes communicate through the hub by default. However, for direct VM-to-VM communication between spokes, you need actual spoke-to-spoke peering.
+**Root Cause:** In a hub-spoke topology, spokes communicate through the hub by default. However, for direct VM-to-VM communication between spokes, I need actual spoke-to-spoke peering.
 
 **Solution:** The Terraform configuration includes direct spoke-to-spoke peering resources. Verify they exist:
 
@@ -306,17 +221,6 @@ This confirms successful connectivity between VM1 and VM2 through the Hub VNet p
 # Navigated to: VNet → Peerings → Verify both spoke1-to-spoke2 and spoke2-to-spoke1 show "Connected"
 ```
 
-If peering is missing, ensure these resources are in `environments/dev/main.tf`:
-```hcl
-resource "azurerm_virtual_network_peering" "spoke1_to_spoke2" {
-  name                      = "${var.prefix}-spoke1-to-spoke2"
-  resource_group_name       = module.resource_group.resource_group_name
-  virtual_network_name      = module.spoke1_network.spoke_vnet_name
-  remote_virtual_network_id = module.spoke2_network.spoke_vnet_id
-  allow_virtual_network_access = true
-  allow_forwarded_traffic      = true
-}
-```
 
 **Test:** SSH to VM1 and ping VM2's private IP:
 ```bash
@@ -328,11 +232,9 @@ ping -c 4 10.2.1.4
 
 **Problem:** SSH connection fails with "Permission denied" or NSG blocks access.
 
-**Root Cause:** Your public IP address changes (home network, VPN, etc.), and the NSG rule only allows your original IP.
+**Root Cause:** Public IP address changes (home network, VPN, etc.), and the NSG rule only allows original IP.
 
-**Automatic Solution (GitHub Actions):** The workflow automatically detects your current IP using `curl https://api.ipify.org` and passes it to Terraform. No manual intervention needed when deploying via GitHub Actions.
-
-**Manual Solution (Local Terraform Runs):** If running Terraform locally, update the `admin_source_ip` variable:
+**Solution (GitHub Actions):** The workflow automatically detects my current IP using `curl https://api.ipify.org` and passes it to Terraform. No manual intervention needed when deploying via GitHub Actions.
 
 ```bash
 # Get your current public IP
@@ -350,15 +252,15 @@ terraform apply -target=module.spoke1_network.azurerm_network_security_rule.ssh 
 
 **Problem:** Workflow shows "Waiting for a runner to pick up this job..." indefinitely.
 
-**Root Cause:** The runner process is not running on your local machine.
+**Root Cause:** The runner process is not running on my local machine.
 
-**Solution:** Restart the runner:
+**Solution:** I restarted the runner:
 ```bash
 cd ~/actions-runner
 ./run.sh
 ```
 
-**Other Solution:** Install as a service (auto-starts on boot and runs in background):
+**Alternative Solution:** Install as a service (auto-starts on boot and runs in background):
 ```bash
 cd ~/actions-runner
 ./svc.sh install
@@ -375,17 +277,4 @@ pkill -f "actions-runner"
 
 # Start fresh
 ./run.sh
-```
-
-### Issue 4: Terraform Format Check Fails
-
-**Problem:** GitHub Actions fails with "Terraform exited with code 3" during format check.
-
-**Solution:** Format your Terraform files locally:
-```bash
-cd environments/dev
-terraform fmt
-git add .
-git commit -m "fmt"
-git push
 ```
