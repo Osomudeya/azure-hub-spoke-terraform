@@ -16,8 +16,8 @@ Modular Terraform solution for deploying Azure Hub-Spoke network architecture.
 - *Hub VNet (10.0.0.0/16) with Hub Subnet (10.0.1.0/24)*
 - *Spoke 1 VNet (10.1.0.0/16) with Subnet (10.1.1.0/24) containing VM1*
 - *Spoke 2 VNet (10.2.0.0/16) with Subnet (10.2.1.0/24) containing VM2*
-- *NSG applied at subnet level (not VM level)*
-- *VNet peering at VNet level (not VM level)*
+- *NSG applied at subnet level*
+- *VNet peering at VNet level*
 - *Direct spoke-to-spoke peering enabling VM-to-VM communication*
 
 ### Peering Connections
