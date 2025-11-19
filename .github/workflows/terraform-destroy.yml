@@ -1,0 +1,88 @@
+name: Terraform Destroy - Azure Hub-Spoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_destroy:
+        description: 'Type "destroy" to confirm infrastructure destruction'
+        required: true
+        type: string
+
+jobs:
+  terraform-destroy:
+    name: 'Terraform Destroy'
+    runs-on: self-hosted
+    
+    permissions:
+      contents: read
+      actions: read
+    
+    defaults:
+      run:
+        working-directory: ./environments/dev
+    
+    env:
+      TF_VAR_resource_group_name: ${{ secrets.TF_VAR_resource_group_name }}
+      TF_VAR_location: ${{ secrets.TF_VAR_location }}
+      TF_VAR_prefix: ${{ secrets.TF_VAR_prefix }}
+      TF_VAR_hub_vnet_address_space: ${{ secrets.TF_VAR_hub_vnet_address_space }}
+      TF_VAR_hub_subnet_address_prefix: ${{ secrets.TF_VAR_hub_subnet_address_prefix }}
+      TF_VAR_spoke1_vnet_address_space: ${{ secrets.TF_VAR_spoke1_vnet_address_space }}
+      TF_VAR_spoke1_subnet_address_prefix: ${{ secrets.TF_VAR_spoke1_subnet_address_prefix }}
+      TF_VAR_spoke2_vnet_address_space: ${{ secrets.TF_VAR_spoke2_vnet_address_space }}
+      TF_VAR_spoke2_subnet_address_prefix: ${{ secrets.TF_VAR_spoke2_subnet_address_prefix }}
+      TF_VAR_vm_size: ${{ secrets.TF_VAR_vm_size }}
+      TF_VAR_admin_username: ${{ secrets.TF_VAR_admin_username }}
+      TF_VAR_ssh_public_key: ${{ secrets.TF_VAR_ssh_public_key }}
+    
+    steps:
+    - name: Confirm Destruction
+      run: |
+        if [ "${{ github.event.inputs.confirm_destroy }}" != "destroy" ]; then
+          echo "❌ Destruction not confirmed. You must type 'destroy' to proceed."
+          echo "Received: ${{ github.event.inputs.confirm_destroy }}"
+          exit 1
+        fi
+        echo "✅ Destruction confirmed. Proceeding with terraform destroy..."
+    
+    - uses: actions/checkout@v3
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+      continue-on-error: true
+    
+    - name: Verify Terraform
+      run: |
+        if ! terraform version &> /dev/null; then
+          echo "Terraform not found, installing..."
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install terraform@1.5 || echo "Please install Terraform manually"
+          fi
+        fi
+        terraform version
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Terraform Init
+      run: |
+        PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+        mkdir -p "$PLUGIN_CACHE_DIR"
+        export TF_PLUGIN_CACHE_DIR="$PLUGIN_CACHE_DIR"
+        terraform init -upgrade=false
+    
+    - name: Terraform Destroy
+      run: terraform destroy -auto-approve
+    
+    - name: Cleanup Terraform State
+      if: success()
+      run: |
+        echo "🧹 Cleaning up local Terraform state files..."
+        rm -f terraform.tfstate terraform.tfstate.backup .terraform.lock.hcl
+        rm -rf .terraform/
+        echo "✅ Cleanup complete"
+
