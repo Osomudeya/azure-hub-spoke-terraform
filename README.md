@@ -146,7 +146,7 @@ This solution addresses all assessment requirements:
 - See [Connectivity Testing](#connectivity-testing) section below
 
 ### ✅ Requirement 6: Cost Optimization and Cleanup
-- **Cost-Optimized:** Standard_B1s VMs (~$26.38/month total)
+- **Cost-Optimized:** Standard_B1s VMs
 - **Cleanup:** `terraform destroy` command provided
 - **Resource Management:** All resources tagged for easy identification
 
@@ -212,9 +212,9 @@ This confirms successful connectivity between VM1 and VM2 through the Hub VNet p
 
 **Problem:** After deployment, VM1 in Spoke1 cannot ping VM2 in Spoke2, even though both are peered to the Hub.
 
-**Root Cause:** In a hub-spoke topology, spokes communicate through the hub by default. However, for direct VM-to-VM communication between spokes, I need actual spoke-to-spoke peering.
+**Cause:** In a hub-spoke topology, spokes communicate through the hub by default. However, for direct VM-to-VM communication between spokes, I need actual spoke-to-spoke peering.
 
-**Solution:** The Terraform configuration includes direct spoke-to-spoke peering resources. Verify they exist:
+**Solution:** I included direct spoke-to-spoke peering resources.
 
 ```bash
 # Checked peering status in Azure Portal
@@ -252,7 +252,7 @@ terraform apply -target=module.spoke1_network.azurerm_network_security_rule.ssh 
 
 **Problem:** Workflow shows "Waiting for a runner to pick up this job..." indefinitely.
 
-**Root Cause:** The runner process is not running on my local machine.
+**Cause:** The runner process is not running on my local machine.
 
 **Solution:** I restarted the runner:
 ```bash
@@ -267,9 +267,9 @@ cd ~/actions-runner
 ./svc.sh start
 ```
 
-**Session Conflict Error:** If you see "A session for this runner already exists":
+**Session Conflict Error:** Got errors like "A session for this runner already exists":
 ```bash
-# Stop all runner processes
+# Stopped all runner processes
 cd ~/actions-runner
 ./svc.sh stop
 pkill -f "Runner.Listener"
